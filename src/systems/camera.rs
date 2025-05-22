@@ -1,4 +1,4 @@
-use bevy::{prelude::*, transform};
+use bevy::prelude::*;
 
 use crate::components::{
     camera::{CameraComponent, MAX_CAMERA_Z},
@@ -10,7 +10,7 @@ pub fn setup_camera(mut commands: Commands) {
         CameraComponent {
             speed: 35.0,
             visible_layer: 0,
-            zoom: 1.0,
+            zoom: 20.0,
         },
         Camera3d::default(),
         Transform::from_xyz(0.0, 18.0, 0.0)
@@ -79,5 +79,15 @@ pub fn move_camera(
             }
             _ => {}
         }
+
+        match (
+            input.just_pressed(KeyCode::Home),
+            input.just_pressed(KeyCode::End),
+        ) {
+            (true, false) => camera.zoom += 1.0,
+            (false, true) => camera.zoom -= 1.0,
+            _ => (),
+        }
+        camera.zoom = camera.zoom.clamp(2.0, 40.0);
     }
 }
