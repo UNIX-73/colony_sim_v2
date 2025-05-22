@@ -1,5 +1,3 @@
-use bevy::image::Volume;
-
 use super::{LayerChunk, chunk_data::chunk_cell_pos::ChunkCellPos};
 use crate::resources::chunks::{CHUNK_VOLUME, CellData, layer_chunk::chunk_data::ChunkData};
 use crate::utils::memory_size::MemorySize;

@@ -20,6 +20,11 @@ impl<T: Clone + PartialEq + Default> CellData for T {}
 #[derive(Resource)]
 pub struct WorldChunks {}
 impl WorldChunks {}
+impl Default for WorldChunks {
+    fn default() -> Self {
+        WorldChunks {}
+    }
+}
 
 pub struct LayerChunks<T: CellData, Chunk: LayerChunk<T>> {
     chunks: HashMap<ChunkPos, Chunk>,
