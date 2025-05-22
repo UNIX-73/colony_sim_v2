@@ -5,11 +5,11 @@ pub mod systems;
 pub mod utils;
 
 use bevy::prelude::*;
-use plugins::chunks::ChunksPlugin;
+use plugins::{camera::CameraPlugin, chunks::ChunksPlugin, grid::GridPlugin};
 
 fn main() {
     let mut app = App::new();
-    app.add_plugins((DefaultPlugins, ChunksPlugin));
+    app.add_plugins((DefaultPlugins, ChunksPlugin, GridPlugin, CameraPlugin));
 
     app.run();
 }

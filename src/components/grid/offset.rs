@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::{GRID_CELL_SIZE, GridPos};
 use bevy::prelude::*;
 
@@ -40,5 +42,19 @@ impl GridPosOffset {
             y: -self.y as f32 * GRID_CELL_SIZE as f32,
             z: self.z as f32 * GRID_CELL_SIZE as f32,
         }
+    }
+}
+impl Default for GridPosOffset {
+    fn default() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+        }
+    }
+}
+impl fmt::Display for GridPosOffset {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({:0}, {:1}, {:2})", self.x, self.y, self.z)
     }
 }

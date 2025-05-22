@@ -5,10 +5,15 @@ pub mod layers_data;
 use crate::utils::memory_size::MemorySize;
 use bevy::prelude::*;
 use chunk_pos::ChunkPos;
-use layer_chunk::{LayerChunk, chunk_data::ChunkData};
+use layer_chunk::{
+    LayerChunk,
+    chunk_data::{ChunkData, chunk_cell_pos::ChunkCellPos},
+    rle_layer::RleChunk,
+};
+use layers_data::block::SurfaceBlock;
 use std::{collections::HashMap, marker::PhantomData};
 
-pub const CHUNK_SIZE: usize = 64;
+pub const CHUNK_SIZE: usize = 32;
 pub const CHUNK_HEIGHT: usize = 60;
 
 pub const CHUNK_AREA: usize = CHUNK_SIZE.pow(2);
@@ -18,31 +23,74 @@ pub trait CellData: Clone + PartialEq + Default {}
 impl<T: Clone + PartialEq + Default> CellData for T {}
 
 #[derive(Resource)]
-pub struct WorldChunks {}
-impl WorldChunks {}
+pub struct WorldChunks {
+    blocks: LayerChunks<SurfaceBlock, RleChunk<SurfaceBlock>>,
+}
+impl WorldChunks {
+    pub fn testing_world() -> WorldChunks {
+        let chunk_radius = 3;
+        let mut blocks_layer = LayerChunks::new(HashMap::new());
+
+        for chunk_x in -chunk_radius..=chunk_radius {
+            for chunk_y in -chunk_radius..=chunk_radius {
+                let mut data = [SurfaceBlock::Air; CHUNK_VOLUME];
+                let mut idx = 0_usize;
+                for cell in &mut data {
+                    if ChunkCellPos::new(idx).z() > 20 {
+                        break;
+                    }
+
+                    *cell = SurfaceBlock::Dirt;
+
+                    idx += 1;
+                }
+
+                blocks_layer.set_chunk(
+                    ChunkPos {
+                        x: chunk_x,
+                        y: chunk_y,
+                    },
+                    ChunkData::new(data),
+                );
+            }
+        }
+
+        info!(
+            "Generated test world with {} chunks - Memory usage: {}",
+            (chunk_radius * 2 + 1).pow(2),
+            blocks_layer.memory_usage().formatted_string()
+        );
+
+        WorldChunks {
+            blocks: blocks_layer,
+        }
+    }
+}
 impl Default for WorldChunks {
     fn default() -> Self {
-        WorldChunks {}
+        WorldChunks {
+            blocks: LayerChunks::new(HashMap::new()),
+        }
     }
 }
 
-pub struct LayerChunks<T: CellData, Chunk: LayerChunk<T>> {
-    chunks: HashMap<ChunkPos, Chunk>,
+pub struct LayerChunks<T: CellData, Resolver: LayerChunk<T>> {
+    chunks: HashMap<ChunkPos, Resolver>,
     __: PhantomData<T>,
 }
-impl<T: CellData, Chunk: LayerChunk<T>> LayerChunks<T, Chunk> {
-    pub fn new() -> Self {
+impl<T: CellData, Resolver: LayerChunk<T>> LayerChunks<T, Resolver> {
+    pub fn new(chunks: HashMap<ChunkPos, Resolver>) -> Self {
         Self {
-            chunks: HashMap::new(),
+            chunks,
             __: PhantomData,
         }
     }
 
-    pub fn get_chunk(&self, chunk_pos: ChunkPos) -> Option<&Chunk> {
+    pub fn get_chunk(&self, chunk_pos: ChunkPos) -> Option<&Resolver> {
         self.chunks.get(&chunk_pos)
     }
 
-    pub fn get_chunk_mut(&mut self, chunk_pos: ChunkPos) -> Option<&mut Chunk> {
+    pub fn get_chunk_mut(&mut self, chunk_pos: ChunkPos) -> Option<&mut Resolver> {
         self.chunks.get_mut(&chunk_pos)
     }
 
@@ -51,7 +99,7 @@ impl<T: CellData, Chunk: LayerChunk<T>> LayerChunks<T, Chunk> {
     }
 
     pub fn set_chunk(&mut self, chunk_pos: ChunkPos, chunk: ChunkData<T>) {
-        self.chunks.insert(chunk_pos, Chunk::from_unzip(chunk));
+        self.chunks.insert(chunk_pos, Resolver::from_unzip(chunk));
     }
 
     /// Devuelve la cantidad de memoria usada por los chunks de capa (GB, MB, Bytes).

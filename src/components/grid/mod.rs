@@ -1,6 +1,8 @@
-pub mod fractional;
+pub mod offset;
 
 use bevy::prelude::*;
+use offset::GridPosOffset;
+use std::fmt;
 
 use crate::{
     resources::chunks::{
@@ -13,6 +15,7 @@ use crate::{
 pub const GRID_CELL_SIZE: f64 = 1.0;
 
 #[derive(Component, Hash, Eq, PartialEq, Clone, Copy, Debug)]
+#[require(Transform)]
 pub struct GridPos {
     pub x: i32,
     pub y: i32,
@@ -57,9 +60,71 @@ impl GridPos {
             z: self.z as f32 * GRID_CELL_SIZE as f32,
         }
     }
+
+    pub fn apply_movement(&mut self, offset: &mut GridPosOffset, movement: Vec3) {
+        offset.x += movement.x as f64;
+        offset.y += movement.y as f64;
+        offset.z += movement.z as f64;
+
+        let delta_x = offset.x.floor() as i32;
+        let delta_y = offset.y.floor() as i32;
+        let delta_z = offset.z.floor() as i32;
+
+        if delta_x != 0 || delta_y != 0 || delta_z != 0 {
+            self.x += delta_x;
+            self.y += delta_y;
+            self.z += delta_z;
+
+            offset.x -= delta_x as f64;
+            offset.y -= delta_y as f64;
+            offset.z -= delta_z as f64;
+        }
+    }
+
+    pub fn apply_movement_with_trigger<F>(
+        &mut self,
+        offset: &mut GridPosOffset,
+        movement: Vec3,
+        mut callback: F,
+    ) where
+        F: FnMut((i32, i32, i32), &mut GridPos, &mut GridPosOffset) -> bool,
+    {
+        offset.x += movement.x as f64;
+        offset.y += movement.y as f64;
+        offset.z += movement.z as f64;
+
+        loop {
+            let delta_x = offset.x.floor() as i32;
+            let delta_y = offset.y.floor() as i32;
+            let delta_z = offset.z.floor() as i32;
+
+            if delta_x == 0 && delta_y == 0 && delta_z == 0 {
+                break;
+            }
+
+            // Callback puede decidir continuar o cancelar movimiento
+            let should_continue = callback((delta_x, delta_y, delta_z), self, offset);
+            if !should_continue {
+                break;
+            }
+
+            self.x += delta_x;
+            self.y += delta_y;
+            self.z += delta_z;
+
+            offset.x -= delta_x as f64;
+            offset.y -= delta_y as f64;
+            offset.z -= delta_z as f64;
+        }
+    }
 }
 impl Default for GridPos {
     fn default() -> Self {
         GridPos { x: 0, y: 0, z: 0 }
+    }
+}
+impl fmt::Display for GridPos {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({:0}, {:1}, {:2})", self.x, self.y, self.z)
     }
 }

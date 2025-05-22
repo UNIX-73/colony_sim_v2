@@ -28,12 +28,11 @@ impl<T: CellData> LayerChunk<T> for RleChunk<T> {
             i += run.count as usize;
         }
 
-        debug_assert!(true, "Requested cell out of bounds of chunk by idx {}", idx);
-        T::default()
+        panic!("RLE decoding failed: index {} not found in any run", idx);
     }
 
     #[inline]
-    fn get_pos(&self, pos: super::chunk_data::chunk_cell_pos::ChunkCellPos) -> T {
+    fn get_pos(&self, pos: ChunkCellPos) -> T {
         self.get_index(pos.idx())
     }
 
@@ -42,7 +41,7 @@ impl<T: CellData> LayerChunk<T> for RleChunk<T> {
         self.get_index(ChunkCellPos::idx_from_xyz(x, y, z))
     }
 
-    fn unzip(&self) -> super::chunk_data::ChunkData<T> {
+    fn unzip(&self) -> ChunkData<T> {
         debug_assert!(self.is_valid());
 
         let mut raw: [MaybeUninit<T>; CHUNK_VOLUME] =
@@ -51,6 +50,11 @@ impl<T: CellData> LayerChunk<T> for RleChunk<T> {
         let mut idx = 0_usize;
         for run in &self.0 {
             for _ in 0..run.count {
+                debug_assert!(
+                    idx < CHUNK_VOLUME,
+                    "Index {} out of bounds during unzip",
+                    idx
+                );
                 raw[idx].write(run.id.clone());
                 idx += 1;
             }
@@ -69,6 +73,11 @@ impl<T: CellData> LayerChunk<T> for RleChunk<T> {
     }
 
     fn from_unzip(unzip: super::chunk_data::ChunkData<T>) -> Self {
+        debug_assert!(
+            CHUNK_VOLUME <= u16::MAX as usize,
+            "RLE run count would overflow u16"
+        );
+
         let mut data: Vec<RleRun<T>> = Vec::new();
 
         let mut iter = unzip.data().into_iter();
@@ -109,7 +118,10 @@ impl<T: CellData> LayerChunk<T> for RleChunk<T> {
     }
 
     fn is_valid(&self) -> bool {
-        debug_assert!(CHUNK_VOLUME > u16::MAX as usize);
+        debug_assert!(
+            CHUNK_VOLUME <= u16::MAX as usize,
+            "RLE run count would overflow u16"
+        );
 
         let mut volume = 0;
         for run in &self.0 {

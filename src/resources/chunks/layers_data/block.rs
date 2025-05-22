@@ -9,3 +9,8 @@ pub enum SurfaceBlock {
     Granite,
     // Más en un futuro
 }
+impl Default for SurfaceBlock {
+    fn default() -> Self {
+        Self::Air
+    }
+}

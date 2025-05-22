@@ -39,7 +39,7 @@ impl MemorySize {
         self.0 * 8
     }
 
-    pub fn human_readable(self) -> String {
+    pub fn formatted_string(self) -> String {
         if self.0 >= 1024 * 1024 * 1024 {
             format!("{:.2} GB", self.gigabytes())
         } else if self.0 >= 1024 * 1024 {
@@ -52,7 +52,7 @@ impl MemorySize {
     }
 
     pub fn print_memory_usage(&self) {
-        println!("Memory Usage: {}", self.human_readable());
+        println!("Memory Usage: {}", self.formatted_string());
     }
 }
 impl Add for MemorySize {
@@ -89,6 +89,6 @@ impl Div<u64> for MemorySize {
 
 impl fmt::Display for MemorySize {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.human_readable())
+        write!(f, "{}", self.formatted_string())
     }
 }
