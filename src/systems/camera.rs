@@ -5,6 +5,9 @@ use crate::components::{
     grid::{GridPos, offset::GridPosOffset},
 };
 
+const MIN_ZOOM: f64 = 1.0;
+const MAX_ZOOM: f64 = 100.0;
+
 const CAMERA_MIN_POLE_LENGTH: u32 = 10;
 const CAMERA_START_ZOOM: f64 = 10.0;
 const CAMERA_BASE_SPEED: f64 = 15.0;
@@ -40,7 +43,6 @@ pub fn move_camera(
     if let Ok((mut camera, mut grid, mut offset)) = camera_query.single_mut() {
         // Movmimiento xy
         let mut dir = Vec2::ZERO;
-
         if input.pressed(KeyCode::KeyW) {
             dir.y -= 1.0;
         }
@@ -53,7 +55,6 @@ pub fn move_camera(
         if input.pressed(KeyCode::KeyD) {
             dir.x += 1.0;
         }
-
         if dir != Vec2::ZERO {
             dir = dir.normalize();
             let movement = dir * camera.speed as f32 * time.delta_secs();
@@ -62,7 +63,6 @@ pub fn move_camera(
         }
 
         let mut changed_layer = true;
-
         match (
             input.just_pressed(KeyCode::PageUp),
             input.just_pressed(KeyCode::PageDown),
@@ -77,7 +77,6 @@ pub fn move_camera(
             }
             _ => changed_layer = false,
         }
-
         if changed_layer {
             println!("Camera layer {}", camera.visible_layer);
         }
@@ -89,7 +88,7 @@ pub fn move_camera(
             _ => changed_zoom = false,
         }
         if changed_zoom {
-            camera.zoom = camera.zoom.clamp(1.0, 40.0);
+            camera.zoom = camera.zoom.clamp(MIN_ZOOM, MAX_ZOOM);
             println!("Camera zoom {}", camera.zoom);
         }
     }

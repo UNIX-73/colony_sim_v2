@@ -17,13 +17,16 @@ pub fn testing_block(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn((
-        ChunkBlockComponent,
-        GridPos::new(0, 0, 0),
-        Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
-        MeshMaterial3d(materials.add(Color::srgb_u8(255, 0, 50))),
-        Transform::default(),
-    ));
 
-    debug_println!("Spawned Test");
+    /*
+        commands.spawn((
+            ChunkBlockComponent,
+            GridPos::new(0, 0, 0),
+            Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
+            MeshMaterial3d(materials.add(Color::srgb_u8(255, 0, 50))),
+            Transform::default(),
+        ));
+
+        debug_println!("Spawned Test");
+    */
 }

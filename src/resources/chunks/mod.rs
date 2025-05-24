@@ -2,7 +2,7 @@ pub mod chunk_pos;
 pub mod layer_chunk;
 pub mod layers_data;
 
-use crate::utils::memory_size::MemorySize;
+use crate::{components::grid::GridPos, utils::memory_size::MemorySize};
 use bevy::prelude::*;
 use chunk_pos::ChunkPos;
 use layer_chunk::{
@@ -11,7 +11,12 @@ use layer_chunk::{
     rle_layer::RleChunk,
 };
 use layers_data::block::SurfaceBlock;
-use std::{collections::HashMap, marker::PhantomData};
+use rand::Rng;
+use std::{
+    collections::{HashMap, HashSet},
+    marker::PhantomData,
+};
+use strum::EnumCount;
 
 pub const CHUNK_SIZE: usize = 32;
 pub const CHUNK_HEIGHT: usize = 60;
@@ -24,7 +29,7 @@ impl<T: Clone + PartialEq + Default> CellData for T {}
 
 #[derive(Resource)]
 pub struct WorldChunks {
-    blocks: LayerChunks<SurfaceBlock, RleChunk<SurfaceBlock>>,
+    pub blocks: LayerChunks<SurfaceBlock, RleChunk<SurfaceBlock>>,
 }
 impl WorldChunks {
     pub fn testing_world() -> WorldChunks {
@@ -40,7 +45,9 @@ impl WorldChunks {
                         break;
                     }
 
-                    *cell = SurfaceBlock::Dirt;
+                    let range = rand::rng().random_range(0..SurfaceBlock::COUNT as u16);
+
+                    *cell = unsafe { std::mem::transmute::<u16, SurfaceBlock>(range) };
 
                     idx += 1;
                 }

@@ -1,6 +1,9 @@
 use bevy::math::IVec3;
 
-use crate::resources::chunks::{CHUNK_AREA, CHUNK_SIZE};
+use crate::{
+    components::grid::GridPos,
+    resources::chunks::{CHUNK_AREA, CHUNK_SIZE, chunk_pos::ChunkPos},
+};
 
 pub struct ChunkCellPos(usize);
 impl ChunkCellPos {
@@ -49,6 +52,19 @@ impl ChunkCellPos {
             x: self.x() as i32,
             y: self.y() as i32,
             z: self.z() as i32,
+        }
+    }
+
+    #[inline]
+    pub fn to_grid_pos(&self, chunk_pos: ChunkPos) -> GridPos {
+        let gx = chunk_pos.x * CHUNK_SIZE as i32 + self.x() as i32;
+        let gy = chunk_pos.y * CHUNK_SIZE as i32 + self.y() as i32;
+        let gz = self.z() as i32;
+
+        GridPos {
+            x: gx,
+            y: gy,
+            z: gz,
         }
     }
 }
