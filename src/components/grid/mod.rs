@@ -56,29 +56,52 @@ impl GridPos {
     pub fn to_transform_translation(&self) -> Vec3 {
         Vec3 {
             x: self.x as f32 * GRID_CELL_SIZE as f32,
-            y: -self.y as f32 * GRID_CELL_SIZE as f32,
-            z: self.z as f32 * GRID_CELL_SIZE as f32,
+            y: self.z as f32 * GRID_CELL_SIZE as f32,
+            z: self.y as f32 * GRID_CELL_SIZE as f32,
         }
     }
 
     pub fn apply_movement(&mut self, offset: &mut GridPosOffset, movement: Vec3) {
-        offset.x += movement.x as f64;
-        offset.y += movement.y as f64;
-        offset.z += movement.z as f64;
+        offset.x += movement.x;
+        offset.y += movement.y;
+        offset.z += movement.z;
 
-        let delta_x = offset.x.floor() as i32;
-        let delta_y = offset.y.floor() as i32;
-        let delta_z = offset.z.floor() as i32;
+        let delta_x = offset.x.round() as i32;
+        let delta_y = offset.y.round() as i32;
+        let delta_z = offset.z.round() as i32;
 
         if delta_x != 0 || delta_y != 0 || delta_z != 0 {
             self.x += delta_x;
             self.y += delta_y;
             self.z += delta_z;
 
-            offset.x -= delta_x as f64;
-            offset.y -= delta_y as f64;
-            offset.z -= delta_z as f64;
+            offset.x -= delta_x as f32;
+            offset.y -= delta_y as f32;
+            offset.z -= delta_z as f32;
         }
+
+        debug_assert!(offset.x.abs() <= 0.51);
+        debug_assert!(offset.y.abs() <= 0.51);
+        debug_assert!(offset.z.abs() <= 0.51);
+    }
+
+    pub fn apply_movement_2d(&mut self, offset: &mut GridPosOffset, movement: Vec2) {
+        offset.x += movement.x as f32;
+        offset.y += movement.y as f32;
+
+        let delta_x = offset.x.round() as i32;
+        let delta_y = offset.y.round() as i32;
+
+        if delta_x != 0 || delta_y != 0 {
+            self.x += delta_x;
+            self.y += delta_y;
+
+            offset.x -= delta_x as f32;
+            offset.y -= delta_y as f32;
+        }
+
+        debug_assert!(offset.x.abs() <= 0.51);
+        debug_assert!(offset.y.abs() <= 0.51);
     }
 
     pub fn apply_movement_with_trigger<F>(
@@ -89,9 +112,9 @@ impl GridPos {
     ) where
         F: FnMut((i32, i32, i32), &mut GridPos, &mut GridPosOffset) -> bool,
     {
-        offset.x += movement.x as f64;
-        offset.y += movement.y as f64;
-        offset.z += movement.z as f64;
+        offset.x += movement.x as f32;
+        offset.y += movement.y as f32;
+        offset.z += movement.z as f32;
 
         loop {
             let delta_x = offset.x.floor() as i32;
@@ -112,9 +135,9 @@ impl GridPos {
             self.y += delta_y;
             self.z += delta_z;
 
-            offset.x -= delta_x as f64;
-            offset.y -= delta_y as f64;
-            offset.z -= delta_z as f64;
+            offset.x -= delta_x as f32;
+            offset.y -= delta_y as f32;
+            offset.z -= delta_z as f32;
         }
     }
 }

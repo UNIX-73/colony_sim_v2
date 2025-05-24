@@ -5,15 +5,19 @@ use crate::components::{
     grid::{GridPos, offset::GridPosOffset},
 };
 
+const CAMERA_MIN_POLE_LENGTH: u32 = 10;
+const CAMERA_START_ZOOM: f64 = 10.0;
+const CAMERA_BASE_SPEED: f64 = 15.0;
+
 pub fn setup_camera(mut commands: Commands) {
     commands.spawn((
         CameraComponent {
-            speed: 35.0,
+            speed: CAMERA_BASE_SPEED,
             visible_layer: 0,
-            zoom: 20.0,
+            zoom: CAMERA_START_ZOOM,
         },
         Camera3d::default(),
-        Transform::from_xyz(0.0, 18.0, 0.0)
+        Transform::from_xyz(0.0, 0.0, 0.0)
             .looking_at(Vec3::ZERO, -Vec3::X)
             .with_rotation(Quat::from_xyzw(
                 -f32::sqrt(2.0) / 2.0, // x
@@ -21,9 +25,11 @@ pub fn setup_camera(mut commands: Commands) {
                 0.0,                   // z
                 f32::sqrt(2.0) / 2.0,  // w
             )),
-        GridPos::default(),
+        GridPos::new(0, 0, CAMERA_MIN_POLE_LENGTH as i32),
         GridPosOffset::default(),
     ));
+
+    println!("Spawned camera");
 }
 
 pub fn move_camera(
@@ -32,17 +38,14 @@ pub fn move_camera(
     mut camera_query: Query<(&mut CameraComponent, &mut GridPos, &mut GridPosOffset)>,
 ) {
     if let Ok((mut camera, mut grid, mut offset)) = camera_query.single_mut() {
-        println!("{}", grid.clone());
-
         // Movmimiento xy
         let mut dir = Vec2::ZERO;
-        let delta_s = time.delta_secs();
 
         if input.pressed(KeyCode::KeyW) {
-            dir.y += 1.0;
+            dir.y -= 1.0;
         }
         if input.pressed(KeyCode::KeyS) {
-            dir.y -= 1.0;
+            dir.y += 1.0;
         }
         if input.pressed(KeyCode::KeyA) {
             dir.x -= 1.0;
@@ -53,17 +56,12 @@ pub fn move_camera(
 
         if dir != Vec2::ZERO {
             dir = dir.normalize();
-            let movement = dir * camera.speed * delta_s;
+            let movement = dir * camera.speed as f32 * time.delta_secs();
 
-            grid.apply_movement(
-                &mut offset,
-                Vec3 {
-                    x: movement.x,
-                    y: movement.y,
-                    z: 0.0,
-                },
-            );
+            grid.apply_movement_2d(&mut offset, movement);
         }
+
+        let mut changed_layer = true;
 
         match (
             input.just_pressed(KeyCode::PageUp),
@@ -77,17 +75,22 @@ pub fn move_camera(
                 camera.visible_layer -= 1;
                 grid.z -= 1;
             }
-            _ => {}
+            _ => changed_layer = false,
         }
 
-        match (
-            input.just_pressed(KeyCode::Home),
-            input.just_pressed(KeyCode::End),
-        ) {
-            (true, false) => camera.zoom += 1.0,
-            (false, true) => camera.zoom -= 1.0,
-            _ => (),
+        if changed_layer {
+            println!("Camera layer {}", camera.visible_layer);
         }
-        camera.zoom = camera.zoom.clamp(2.0, 40.0);
+
+        let mut changed_zoom = true;
+        match (input.pressed(KeyCode::Home), input.pressed(KeyCode::End)) {
+            (true, false) => camera.zoom += time.delta_secs_f64() * camera.speed,
+            (false, true) => camera.zoom -= time.delta_secs_f64() * camera.speed,
+            _ => changed_zoom = false,
+        }
+        if changed_zoom {
+            camera.zoom = camera.zoom.clamp(1.0, 40.0);
+            println!("Camera zoom {}", camera.zoom);
+        }
     }
 }
