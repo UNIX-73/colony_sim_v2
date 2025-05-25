@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 bevy = { version = "0.16.0", features = ["dynamic_linking"] }
+lru = "0.14.0"
 rand = "0.9.1"
 strum = "0.27.1"
 strum_macros = "0.27.1"

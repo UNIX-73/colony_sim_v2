@@ -2,7 +2,10 @@ pub mod chunk_pos;
 pub mod layer_chunk;
 pub mod layers_data;
 
-use crate::{components::grid::GridPos, utils::memory_size::MemorySize};
+use crate::{
+    components::grid::GridPos,
+    utils::{memory_size::MemorySize, rw_lock::Rw},
+};
 use bevy::prelude::*;
 use chunk_pos::ChunkPos;
 use layer_chunk::{
@@ -82,22 +85,22 @@ impl Default for WorldChunks {
 }
 
 pub struct LayerChunks<T: CellData, Resolver: LayerChunk<T>> {
-    chunks: HashMap<ChunkPos, Resolver>,
+    chunks: HashMap<ChunkPos, Rw<Resolver>>,
     __: PhantomData<T>,
 }
 impl<T: CellData, Resolver: LayerChunk<T>> LayerChunks<T, Resolver> {
-    pub fn new(chunks: HashMap<ChunkPos, Resolver>) -> Self {
+    pub fn new(chunks: HashMap<ChunkPos, Rw<Resolver>>) -> Self {
         Self {
             chunks,
             __: PhantomData,
         }
     }
 
-    pub fn get_chunk(&self, chunk_pos: ChunkPos) -> Option<&Resolver> {
+    pub fn get_chunk(&self, chunk_pos: ChunkPos) -> Option<&Rw<Resolver>> {
         self.chunks.get(&chunk_pos)
     }
 
-    pub fn get_chunk_mut(&mut self, chunk_pos: ChunkPos) -> Option<&mut Resolver> {
+    pub fn get_chunk_mut(&mut self, chunk_pos: ChunkPos) -> Option<&mut Rw<Resolver>> {
         self.chunks.get_mut(&chunk_pos)
     }
 
@@ -106,7 +109,8 @@ impl<T: CellData, Resolver: LayerChunk<T>> LayerChunks<T, Resolver> {
     }
 
     pub fn set_chunk(&mut self, chunk_pos: ChunkPos, chunk: ChunkData<T>) {
-        self.chunks.insert(chunk_pos, Resolver::from_unzip(chunk));
+        self.chunks
+            .insert(chunk_pos, Rw::new(Resolver::from_unzip(chunk)));
     }
 
     /// Devuelve la cantidad de memoria usada por los chunks de capa (GB, MB, Bytes).
@@ -114,7 +118,7 @@ impl<T: CellData, Resolver: LayerChunk<T>> LayerChunks<T, Resolver> {
         let mut memory = MemorySize::new(0);
 
         for (_, chunk) in self.chunks.iter() {
-            let chunk_mem = chunk.memory_usage();
+            let chunk_mem = chunk.read(|c| c.memory_usage().clone());
 
             memory = memory + chunk_mem;
         }

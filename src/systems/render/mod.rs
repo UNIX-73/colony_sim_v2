@@ -68,8 +68,8 @@ pub fn render_blocks(
             for chunk_x in chunk_minus_x..=chunk_plus_x {
                 let chunk_pos = ChunkPos::new(camera_chunk.x + chunk_x, camera_chunk.y + chunk_y);
 
-                if let Some(rle) = chunks.blocks.get_chunk(chunk_pos) {
-                    let blocks = rle.unzip();
+                if let Some(rw_rle) = chunks.blocks.get_chunk(chunk_pos) {
+                    let blocks = rw_rle.read(|rle| rle.unzip());
 
                     let chunk_origin_x = chunk_pos.x * CHUNK_SIZE as i32;
                     let chunk_origin_y = chunk_pos.y * CHUNK_SIZE as i32;
@@ -95,8 +95,17 @@ pub fn render_blocks(
 
                                     let grid_pos = index.to_grid_pos(chunk_pos);
 
-                                    rendered.insert(grid_pos);
-                                    if rendered_cache.rendered_blocks.contains(&grid_pos) {
+                                    // FIXME: La mayor parte de mal rendimiento viene del contains ya que no tiene buena cache y se llama millones de veces / s
+                                    // Intentar usar arrays con bitmaps
+                                    let mut cont = false;
+                                    debug_perf!("HashSet", {
+                                        rendered.insert(grid_pos);
+                                        if rendered_cache.rendered_blocks.contains(&grid_pos) {
+                                            cont = true;
+                                        }
+                                    });
+
+                                    if cont {
                                         continue;
                                     }
 
