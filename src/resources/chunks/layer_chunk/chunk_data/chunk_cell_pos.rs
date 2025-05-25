@@ -5,6 +5,7 @@ use crate::{
     resources::chunks::{CHUNK_AREA, CHUNK_SIZE, chunk_pos::ChunkPos},
 };
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ChunkCellPos(usize);
 impl ChunkCellPos {
     #[inline]

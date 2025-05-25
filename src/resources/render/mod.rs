@@ -1,17 +1,24 @@
 pub mod render_bit_map;
 
-use std::collections::HashSet;
-use bevy::prelude::*;
-use crate::components::grid::GridPos;
+use std::num::NonZero;
 
-#[derive(Resource, Default)]
+use crate::utils::rw_lock::Rw;
+use bevy::prelude::*;
+use lru::LruCache;
+use render_bit_map::RenderBitMap;
+
+use super::chunks::chunk_pos::ChunkPos;
+
+const LRU_ITEMS: usize = 10;
+
+#[derive(Resource)]
 pub struct RenderCache {
-    pub rendered_blocks: HashSet<GridPos>,
+    pub blocks_cache: Rw<LruCache<ChunkPos, RenderBitMap>>,
 }
 impl RenderCache {
     pub fn new() -> RenderCache {
         RenderCache {
-            rendered_blocks: HashSet::new(),
+            blocks_cache: Rw::new(LruCache::new(NonZero::new(LRU_ITEMS).unwrap())),
         }
     }
 }

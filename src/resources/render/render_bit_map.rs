@@ -1,10 +1,11 @@
-use crate::{
-    resources::chunks::{CHUNK_VOLUME, layer_chunk::chunk_data::chunk_cell_pos::ChunkCellPos},
+use crate::resources::chunks::{
+    CHUNK_VOLUME, layer_chunk::chunk_data::chunk_cell_pos::ChunkCellPos,
 };
 
 const U64_BITS: usize = u64::BITS as usize;
 const BIT_MAP_SIZE: usize = CHUNK_VOLUME / U64_BITS;
 
+#[derive(Clone)]
 pub struct RenderBitMap([u64; BIT_MAP_SIZE]);
 impl Default for RenderBitMap {
     fn default() -> Self {

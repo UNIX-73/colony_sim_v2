@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use bevy::prelude::*;
 
 use crate::{
@@ -16,7 +14,7 @@ use crate::{
             layer_chunk::{LayerChunk, chunk_data::chunk_cell_pos::ChunkCellPos},
             layers_data::block::SurfaceBlock,
         },
-        render::RenderCache,
+        render::{RenderCache, render_bit_map::RenderBitMap},
     },
 };
 
@@ -30,8 +28,6 @@ pub fn render_blocks(
     blocks_query: Query<(Entity, &GridPos), With<ChunkBlockComponent>>,
 ) {
     debug_assert!(MAX_CAMERA_RENDER_AREA_X % 2 != 0 && MAX_CAMERA_RENDER_AREA_Y % 2 != 0);
-
-    let mut rendered: HashSet<GridPos> = HashSet::new();
 
     let (camera, camera_pos) = match camera_query.single() {
         Ok(res) => res,
@@ -68,13 +64,18 @@ pub fn render_blocks(
             for chunk_x in chunk_minus_x..=chunk_plus_x {
                 let chunk_pos = ChunkPos::new(camera_chunk.x + chunk_x, camera_chunk.y + chunk_y);
 
+                // Cells
                 if let Some(rw_rle) = chunks.blocks.get_chunk(chunk_pos) {
                     let blocks = rw_rle.read(|rle| rle.unzip());
 
                     let chunk_origin_x = chunk_pos.x * CHUNK_SIZE as i32;
                     let chunk_origin_y = chunk_pos.y * CHUNK_SIZE as i32;
 
-                    // Cells
+                    let mut prerendered_cache = rendered_cache
+                        .blocks_cache
+                        .write(|lru| lru.get(&chunk_pos).cloned())
+                        .unwrap_or(RenderBitMap::default());
+
                     for world_z in 0..=camera.visible_layer as i32 {
                         for local_y in 0..CHUNK_SIZE as i32 {
                             for local_x in 0..CHUNK_SIZE as i32 {
@@ -93,21 +94,12 @@ pub fn render_blocks(
                                         world_z as usize,
                                     );
 
-                                    let grid_pos = index.to_grid_pos(chunk_pos);
-
                                     // FIXME: La mayor parte de mal rendimiento viene del contains ya que no tiene buena cache y se llama millones de veces / s
                                     // Intentar usar arrays con bitmaps
-                                    let mut cont = false;
-                                    debug_perf!("HashSet", {
-                                        rendered.insert(grid_pos);
-                                        if rendered_cache.rendered_blocks.contains(&grid_pos) {
-                                            cont = true;
-                                        }
-                                    });
-
-                                    if cont {
+                                    if prerendered_cache.get_cell(index) {
                                         continue;
                                     }
+                                    prerendered_cache.set_cell(index, true);
 
                                     let block = blocks.get_pos(index);
 
@@ -132,19 +124,54 @@ pub fn render_blocks(
                             }
                         }
                     }
+
+                    rendered_cache.blocks_cache.write(|lru| {
+                        let bit_map = lru.get_mut(&chunk_pos);
+                        if let Some(bm) = bit_map {
+                            *bm = prerendered_cache;
+                        } else {
+                            lru.push(chunk_pos, prerendered_cache);
+                        }
+                    });
                 }
             }
         }
+    });
 
+    // Paramos el acceso a otros threads y no cada operacion ya que esta es la mas importante para que no bajen los fps visibles
+    // al estar en el main thread
+    let mut i = 0;
+    let mut i2 = 0;
+
+    rendered_cache.blocks_cache.read(|lru| {
         for (entity, pos) in &blocks_query {
-            if !rendered.contains(pos) {
-                commands.entity(entity).despawn();
-            }
-        }
+            let bit_map = lru.peek(&pos.get_chunk_pos());
 
-        // Actualizamos el cache de bloques renderizados
-        if !rendered.is_empty() {
-            rendered_cache.rendered_blocks = rendered;
+            if let Some(bm) = bit_map {
+                if bm.get_cell(pos.get_chunk_cell_pos()) == false {
+                    commands.entity(entity).despawn();
+                    i += 1;
+                } else {
+                    i2 += 1;
+                }
+                continue;
+            }
+            i += 1;
+
+            commands.entity(entity).despawn();
         }
     });
+    println!("{}, {}", i, i2);
+
+    /*
+    for (entity, pos) in &blocks_query {
+        if !rendered.contains(pos) {
+            commands.entity(entity).despawn();
+        }
+    }
+
+    // Actualizamos el cache de bloques renderizados
+    if !rendered.is_empty() {
+        rendered_cache.blocks_cache = rendered;
+    }*/
 }
