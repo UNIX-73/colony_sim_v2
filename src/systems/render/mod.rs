@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 
 use crate::{
@@ -136,42 +138,43 @@ pub fn render_blocks(
                 }
             }
         }
-    });
 
-    // Paramos el acceso a otros threads y no cada operacion ya que esta es la mas importante para que no bajen los fps visibles
-    // al estar en el main thread
-    let mut i = 0;
-    let mut i2 = 0;
-
-    rendered_cache.blocks_cache.read(|lru| {
-        for (entity, pos) in &blocks_query {
-            let bit_map = lru.peek(&pos.get_chunk_pos());
-
-            if let Some(bm) = bit_map {
-                if bm.get_cell(pos.get_chunk_cell_pos()) == false {
-                    commands.entity(entity).despawn();
-                    i += 1;
-                } else {
-                    i2 += 1;
+        // Paramos el acceso a otros threads y no cada operacion ya que esta es la mas importante para que no bajen los fps visibles
+        // al estar en el main thread
+        // 1) Snapshot local de bitmaps por chunk
+        let mut chunk_bitmaps: HashMap<ChunkPos, RenderBitMap> = HashMap::default();
+        rendered_cache.blocks_cache.read(|lru| {
+            for chunk_y in chunk_minus_y..=chunk_plus_y {
+                for chunk_x in chunk_minus_x..=chunk_plus_x {
+                    let chunk_pos =
+                        ChunkPos::new(camera_chunk.x + chunk_x, camera_chunk.y + chunk_y);
+                    if let Some(bm) = lru.peek(&chunk_pos) {
+                        chunk_bitmaps.insert(chunk_pos, bm.clone());
+                    }
                 }
-                continue;
             }
-            i += 1;
+        });
 
-            commands.entity(entity).despawn();
+        let mut i = 0;
+        let mut i2 = i;
+
+        // 2) Despawn masivo usando la snapshot
+        for (entity, &pos) in blocks_query.iter() {
+            let chunk_pos = pos.get_chunk_pos();
+            let cell_pos = pos.get_chunk_cell_pos();
+            let should_keep = chunk_bitmaps
+                .get(&chunk_pos)
+                .map(|bm| bm.get_cell(cell_pos))
+                .unwrap_or(false);
+
+            if !should_keep {
+                commands.entity(entity).despawn();
+                i += 1;
+            } else {
+                i2 += 1;
+            }
         }
+
+        println!("{},{}", i, i2)
     });
-    println!("{}, {}", i, i2);
-
-    /*
-    for (entity, pos) in &blocks_query {
-        if !rendered.contains(pos) {
-            commands.entity(entity).despawn();
-        }
-    }
-
-    // Actualizamos el cache de bloques renderizados
-    if !rendered.is_empty() {
-        rendered_cache.blocks_cache = rendered;
-    }*/
 }

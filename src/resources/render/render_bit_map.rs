@@ -23,7 +23,7 @@ impl RenderBitMap {
 
         let word = self.0[word_idx];
 
-        word & (0b1 << idx) == 0b1
+        ((word >> idx) & 1) == 1
     }
 
     pub fn set_cell(&mut self, cell_pos: ChunkCellPos, value: bool) {
@@ -33,9 +33,9 @@ impl RenderBitMap {
         let word = &mut self.0[word_idx];
 
         if value {
-            *word |= 1 << idx;
+            *word |= 1 << idx; // Setea el bit (activar)
         } else {
-            *word &= !(1 << idx);
+            *word &= !(1 << idx); // Limpia el bit (desactivar)
         }
     }
 }
