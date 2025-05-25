@@ -1,7 +1,7 @@
+pub mod render_bit_map;
+
 use std::collections::HashSet;
-
 use bevy::prelude::*;
-
 use crate::components::grid::GridPos;
 
 #[derive(Resource, Default)]
