@@ -1,8 +1,11 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::camera};
 
-use crate::components::{
-    camera::{CameraComponent, MAX_CAMERA_Z},
-    grid::{GridPos, offset::GridPosOffset},
+use crate::{
+    components::{
+        camera::{CameraComponent, MAX_CAMERA_Z},
+        grid::{GridPos, offset::GridPosOffset},
+    },
+    resources::chunks::CHUNK_HEIGHT,
 };
 
 const MIN_ZOOM: f64 = 1.0;
@@ -67,16 +70,18 @@ pub fn move_camera(
             input.just_pressed(KeyCode::PageUp),
             input.just_pressed(KeyCode::PageDown),
         ) {
-            (true, false) if camera.visible_layer < MAX_CAMERA_Z => {
+            (true, false) if camera.visible_layer + 1 < CHUNK_HEIGHT as u32 => {
                 camera.visible_layer += 1;
                 grid.z += 1;
             }
             (false, true) if camera.visible_layer > 0 => {
                 camera.visible_layer -= 1;
+
                 grid.z -= 1;
             }
             _ => changed_layer = false,
         }
+
         if changed_layer {
             println!("Camera layer {}", camera.visible_layer);
         }

@@ -110,11 +110,9 @@ pub fn render_blocks(
                                     }
                                     let color = block.get_color().unwrap_or((0, 0, 0));
 
-                                    let pos = GridPos::new(world_x, world_y, world_z);
-
                                     commands.spawn((
                                         ChunkBlockComponent,
-                                        pos,
+                                        GridPos::new(world_x, world_y, world_z),
                                         Mesh3d(meshes.add(Cuboid::new(1.0, 1.0, 1.0))),
                                         MeshMaterial3d(
                                             materials
