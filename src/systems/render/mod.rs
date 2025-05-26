@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{array, collections::HashMap};
 
 use bevy::prelude::*;
 
@@ -16,7 +16,7 @@ use crate::{
             layer_chunk::{LayerChunk, chunk_data::chunk_cell_pos::ChunkCellPos},
             layers_data::block::SurfaceBlock,
         },
-        render::{RenderCache, render_bit_map::RenderBitMap},
+        render::{RENDERED_BLOCKS_LRU_ITEMS, RenderCache, render_bit_map::RenderBitMap},
     },
 };
 
@@ -25,7 +25,7 @@ pub fn render_blocks(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     chunks: Res<WorldChunks>,
-    mut rendered_cache: ResMut<RenderCache>,
+    rendered_cache: Res<RenderCache>,
     camera_query: Query<(&CameraComponent, &GridPos)>,
     blocks_query: Query<(Entity, &GridPos), With<ChunkBlockComponent>>,
 ) {
@@ -139,42 +139,43 @@ pub fn render_blocks(
             }
         }
 
-        // Paramos el acceso a otros threads y no cada operacion ya que esta es la mas importante para que no bajen los fps visibles
-        // al estar en el main thread
-        // 1) Snapshot local de bitmaps por chunk
-        let mut chunk_bitmaps: HashMap<ChunkPos, RenderBitMap> = HashMap::default();
-        rendered_cache.blocks_cache.read(|lru| {
-            for chunk_y in chunk_minus_y..=chunk_plus_y {
-                for chunk_x in chunk_minus_x..=chunk_plus_x {
-                    let chunk_pos =
-                        ChunkPos::new(camera_chunk.x + chunk_x, camera_chunk.y + chunk_y);
-                    if let Some(bm) = lru.peek(&chunk_pos) {
-                        chunk_bitmaps.insert(chunk_pos, bm.clone());
+        debug_perf!("DESPAWN", {
+            rendered_cache.blocks_cache.read(|lru| {
+                let mut rendered_bm: [Option<(ChunkPos, &RenderBitMap)>;
+                    RENDERED_BLOCKS_LRU_ITEMS] = [None; RENDERED_BLOCKS_LRU_ITEMS];
+
+                // Pasamos al stack para mejorar rendimiento
+                let mut i = 0_usize;
+                for (pos, bm) in lru.iter() {
+                    rendered_bm[i] = Some((pos.clone(), bm));
+                    i += 1;
+                }
+
+                // Se elimina  a no ser que bm.get_cell sea true, en ese caso como si esta renderizado se pasa a despawn = false;
+                let mut despawn;
+                for (entity, pos) in &blocks_query {
+                    despawn = true;
+
+                    let chunk_pos = pos.get_chunk_pos();
+                    let cell_pos = pos.get_chunk_cell_pos();
+
+                    for data in &rendered_bm {
+                        if let Some((c_pos, bm)) = data {
+                            if *c_pos == chunk_pos {
+                                despawn = !bm.get_cell(cell_pos);
+                                break;
+                            }
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if despawn {
+                        commands.entity(entity).despawn();
                     }
                 }
-            }
+            });
         });
-
-        let mut i = 0;
-        let mut i2 = i;
-
-        // 2) Despawn masivo usando la snapshot
-        for (entity, &pos) in blocks_query.iter() {
-            let chunk_pos = pos.get_chunk_pos();
-            let cell_pos = pos.get_chunk_cell_pos();
-            let should_keep = chunk_bitmaps
-                .get(&chunk_pos)
-                .map(|bm| bm.get_cell(cell_pos))
-                .unwrap_or(false);
-
-            if !should_keep {
-                commands.entity(entity).despawn();
-                i += 1;
-            } else {
-                i2 += 1;
-            }
-        }
-
-        println!("{},{}", i, i2)
     });
 }

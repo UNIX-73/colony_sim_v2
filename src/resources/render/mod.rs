@@ -9,7 +9,7 @@ use render_bit_map::RenderBitMap;
 
 use super::chunks::chunk_pos::ChunkPos;
 
-const LRU_ITEMS: usize = 10;
+pub const RENDERED_BLOCKS_LRU_ITEMS: usize = 20;
 
 #[derive(Resource)]
 pub struct RenderCache {
@@ -18,7 +18,7 @@ pub struct RenderCache {
 impl RenderCache {
     pub fn new() -> RenderCache {
         RenderCache {
-            blocks_cache: Rw::new(LruCache::new(NonZero::new(LRU_ITEMS).unwrap())),
+            blocks_cache: Rw::new(LruCache::new(NonZero::new(RENDERED_BLOCKS_LRU_ITEMS).unwrap())),
         }
     }
 }
