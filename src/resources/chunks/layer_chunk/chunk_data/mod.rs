@@ -1,4 +1,4 @@
-use crate::resources::chunks::{CHUNK_VOLUME, CellData};
+use crate::resources::chunks::{CHUNK_HEIGHT, CHUNK_SIZE, CHUNK_VOLUME, CellData};
 use chunk_cell_pos::ChunkCellPos;
 pub mod chunk_cell_pos;
 
@@ -51,4 +51,41 @@ impl<T: CellData> ChunkData<T> {
     pub fn data_mut(&mut self) -> &mut [T; CHUNK_VOLUME] {
         &mut self.0
     }
+
+    /// Devuelve un bool que representa si el bloque está bloqueado por todos sus lados
+    #[inline]
+    pub fn is_occluded(&self, pos: ChunkCellPos) -> bool {
+        for (dx, dy, dz) in OCCLUSION_DIRECTIONS {
+            let displaced = pos.get_displaced(dx, dy, dz);
+
+            if let Some(displaced) = displaced {
+                let block = self.get_pos(displaced);
+
+                if !block.occludes() {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[inline]
+    pub fn is_occluded_with_visible_layer(&self, pos: ChunkCellPos, visible_layer: usize) -> bool {
+        if pos.z() >= visible_layer {
+            return false;
+        }
+
+        self.is_occluded(pos)
+    }
 }
+const OCCLUSION_DIRECTIONS: [(i32, i32, i32); 6] = [
+    (1, 0, 0),
+    (-1, 0, 0),
+    (0, 1, 0),
+    (0, -1, 0),
+    (0, 0, 1),
+    (0, 0, -1),
+];

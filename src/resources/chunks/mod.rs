@@ -2,10 +2,7 @@ pub mod chunk_pos;
 pub mod layer_chunk;
 pub mod layers_data;
 
-use crate::{
-    components::grid::GridPos,
-    utils::{memory_size::MemorySize, rw_lock::Rw},
-};
+use crate::utils::{memory_size::MemorySize, rw_lock::Rw};
 use bevy::prelude::*;
 use chunk_pos::ChunkPos;
 use layer_chunk::{
@@ -13,7 +10,7 @@ use layer_chunk::{
     chunk_data::{ChunkData, chunk_cell_pos::ChunkCellPos},
     rle_layer::RleChunk,
 };
-use layers_data::block::SurfaceBlock;
+use layers_data::{CellData, block::Block};
 use rand::Rng;
 use std::{
     collections::{HashMap, HashSet},
@@ -27,12 +24,9 @@ pub const CHUNK_HEIGHT: usize = 60;
 pub const CHUNK_AREA: usize = CHUNK_SIZE.pow(2);
 pub const CHUNK_VOLUME: usize = CHUNK_AREA * CHUNK_HEIGHT;
 
-pub trait CellData: Clone + PartialEq + Default {}
-impl<T: Clone + PartialEq + Default> CellData for T {}
-
 #[derive(Resource)]
 pub struct WorldChunks {
-    pub blocks: LayerChunks<SurfaceBlock, RleChunk<SurfaceBlock>>,
+    pub blocks: LayerChunks<Block, RleChunk<Block>>,
 }
 impl WorldChunks {
     pub fn testing_world() -> WorldChunks {
@@ -41,16 +35,16 @@ impl WorldChunks {
 
         for chunk_x in -chunk_radius..=chunk_radius {
             for chunk_y in -chunk_radius..=chunk_radius {
-                let mut data = [SurfaceBlock::Air; CHUNK_VOLUME];
+                let mut data = [Block::Air; CHUNK_VOLUME];
                 let mut idx = 0_usize;
                 for cell in &mut data {
                     if ChunkCellPos::new(idx).z() > 20 {
                         break;
                     }
 
-                    let range = rand::rng().random_range(0..SurfaceBlock::COUNT as u16);
+                    let range = rand::rng().random_range(0..Block::COUNT as u16);
 
-                    *cell = unsafe { std::mem::transmute::<u16, SurfaceBlock>(range) };
+                    *cell = unsafe { std::mem::transmute::<u16, Block>(range) };
 
                     idx += 1;
                 }

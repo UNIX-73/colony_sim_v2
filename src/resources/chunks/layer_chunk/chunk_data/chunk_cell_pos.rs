@@ -1,8 +1,10 @@
+use core::panic;
+
 use bevy::math::IVec3;
 
 use crate::{
     components::grid::GridPos,
-    resources::chunks::{CHUNK_AREA, CHUNK_SIZE, chunk_pos::ChunkPos},
+    resources::chunks::{CHUNK_AREA, CHUNK_HEIGHT, CHUNK_SIZE, chunk_pos::ChunkPos},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -66,6 +68,25 @@ impl ChunkCellPos {
             x: gx,
             y: gy,
             z: gz,
+        }
+    }
+
+    #[inline]
+    pub fn get_displaced(&self, dx: i32, dy: i32, dz: i32) -> Option<ChunkCellPos> {
+        let x = self.x() as i32 + dx;
+        let y = self.y() as i32 + dy;
+        let z = self.z() as i32 + dz;
+
+        if x >= 0
+            && y >= 0
+            && z >= 0
+            && x < CHUNK_SIZE as i32
+            && y < CHUNK_SIZE as i32
+            && z < CHUNK_HEIGHT as i32
+        {
+            Some(Self::from_xyz(x as usize, y as usize, z as usize))
+        } else {
+            None
         }
     }
 }
