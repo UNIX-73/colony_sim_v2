@@ -72,8 +72,6 @@ impl<T: CellData> LayerChunk<T> for RleChunk<T> {
         }))
     }
 
-    
-
     fn from_unzip(unzip: super::chunk_data::ChunkData<T>) -> Self {
         debug_assert!(
             CHUNK_VOLUME <= u16::MAX as usize,

@@ -5,7 +5,9 @@ edition = "2024"
 
 [dependencies]
 bevy = { version = "0.16.0", features = ["dynamic_linking"] }
+dashmap = "6.1.0"
 lru = "0.14.0"
+once_cell = "1.21.3"
 rand = "0.9.1"
 strum = "0.27.1"
 strum_macros = "0.27.1"

@@ -6,8 +6,8 @@ use crate::{
         chunk::blocks::ChunkBlockComponent,
         grid::GridPos,
     },
-    debug_perf,
     resources::{
+        SharedThreadResource,
         chunks::{
             CHUNK_SIZE, WorldChunks,
             chunk_pos::ChunkPos,
@@ -22,7 +22,7 @@ use bevy::prelude::*;
 pub fn render_blocks(
     mut commands: Commands,
     block_instancing: Res<BlockInstancing>,
-    chunks: Res<WorldChunks>,
+    chunks: Res<SharedThreadResource<WorldChunks>>,
     rendered_cache: Res<RenderCache>,
     camera_query: Query<(&CameraComponent, &GridPos)>,
     blocks_query: Query<(Entity, &GridPos), With<ChunkBlockComponent>>,
@@ -64,7 +64,7 @@ pub fn render_blocks(
             let chunk_pos = ChunkPos::new(camera_chunk.x + chunk_x, camera_chunk.y + chunk_y);
 
             // Cells
-            if let Some(rw_rle) = chunks.blocks.get_chunk(chunk_pos) {
+            if let Some(rw_rle) = chunks.get().read(|world| world.blocks.get_chunk(chunk_pos)) {
                 let blocks = rw_rle.read(|rle| rle.unzip());
 
                 let chunk_origin_x = chunk_pos.x * CHUNK_SIZE as i32;

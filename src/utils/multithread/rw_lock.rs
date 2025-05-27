@@ -1,11 +1,9 @@
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Wrapper de RwLock<T> para acceso controlado a través de closures.
-#[derive(Clone)]
 pub struct Rw<T> {
     inner: Arc<RwLock<T>>,
 }
-
 impl<T> Rw<T> {
     /// Crea un nuevo Rw<T>
     pub fn new(value: T) -> Self {
@@ -39,5 +37,12 @@ impl<T> Rw<T> {
 
     pub fn write_guard(&self) -> RwLockWriteGuard<'_, T> {
         self.inner.write().expect("RwLock poisoned")
+    }
+}
+impl<T> Clone for Rw<T> {
+    fn clone(&self) -> Self {
+        Rw {
+            inner: Arc::clone(&self.inner),
+        }
     }
 }
