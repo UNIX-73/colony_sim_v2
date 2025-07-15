@@ -4,6 +4,8 @@ This project is a Rust-based experimental engine for managing large voxel-like w
 
 ## Overview
 
+![Chunk simulation demo](example.gif)
+
 The engine is built around a chunk-based system where the world is divided into equally sized 3D regions. Each chunk handles its internal data and is optimized for memory and performance through compression, caching, and smart rendering strategies.
 
 Although currently minimal in gameplay, it serves as a technical prototype for managing large, dynamic voxel spaces.
