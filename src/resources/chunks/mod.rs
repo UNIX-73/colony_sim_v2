@@ -8,7 +8,6 @@ use crate::utils::{
 };
 use bevy::prelude::*;
 use chunk_pos::ChunkPos;
-use dashmap::DashMap;
 use layer_chunk::{
     LayerChunk,
     chunk_data::{ChunkData, chunk_cell_pos::ChunkCellPos},
@@ -17,7 +16,7 @@ use layer_chunk::{
 use layers_data::{CellData, block::Block};
 use once_cell::sync::Lazy;
 use rand::Rng;
-use std::marker::PhantomData;
+use std::{collections::HashMap, marker::PhantomData};
 use strum::EnumCount;
 
 pub const CHUNK_SIZE: usize = 32;
@@ -35,13 +34,13 @@ pub struct WorldChunks {
 impl WorldChunks {
     pub fn new() -> WorldChunks {
         WorldChunks {
-            blocks: LayerChunks::new(DashMap::new()),
+            blocks: LayerChunks::new(HashMap::new()),
         }
     }
 
     pub fn testing_world() -> WorldChunks {
-        let chunk_radius = 3;
-        let mut blocks_layer = LayerChunks::new(DashMap::new());
+        let chunk_radius = 20;
+        let mut blocks_layer = LayerChunks::new(HashMap::new());
 
         for chunk_x in -chunk_radius..=chunk_radius {
             for chunk_y in -chunk_radius..=chunk_radius {
@@ -83,17 +82,17 @@ impl WorldChunks {
 impl Default for WorldChunks {
     fn default() -> Self {
         WorldChunks {
-            blocks: LayerChunks::new(DashMap::new()),
+            blocks: LayerChunks::new(HashMap::new()),
         }
     }
 }
 
 pub struct LayerChunks<T: CellData, Resolver: LayerChunk<T>> {
-    chunks: DashMap<ChunkPos, Rw<Resolver>>,
+    chunks: HashMap<ChunkPos, Rw<Resolver>>,
     __: PhantomData<T>,
 }
 impl<T: CellData, Resolver: LayerChunk<T>> LayerChunks<T, Resolver> {
-    pub fn new(chunks: DashMap<ChunkPos, Rw<Resolver>>) -> Self {
+    pub fn new(chunks: HashMap<ChunkPos, Rw<Resolver>>) -> Self {
         Self {
             chunks,
             __: PhantomData,
@@ -118,7 +117,7 @@ impl<T: CellData, Resolver: LayerChunk<T>> LayerChunks<T, Resolver> {
         let mut memory = MemorySize::new(0);
 
         for chunk in self.chunks.iter() {
-            let chunk_mem = chunk.read(|c| c.memory_usage().clone());
+            let chunk_mem = chunk.1.read(|layer| layer.memory_usage());
 
             memory = memory + chunk_mem;
         }

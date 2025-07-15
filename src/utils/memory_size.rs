@@ -51,7 +51,7 @@ impl MemorySize {
         }
     }
 
-    pub fn print_memory_usage(&self) {
+    pub fn print(&self) {
         println!("Memory Usage: {}", self.formatted_string());
     }
 }

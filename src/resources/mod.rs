@@ -1,9 +1,9 @@
-use bevy::ecs::resource::Resource;
-
-use crate::utils::multithread::mutex::Mtx;
-
 pub mod chunks;
 pub mod render;
+pub mod simulation;
+
+use crate::utils::multithread::mutex::Mtx;
+use bevy::ecs::resource::Resource;
 
 #[derive(Resource)]
 pub struct SharedThreadResource<T> {

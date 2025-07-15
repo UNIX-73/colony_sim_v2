@@ -1,4 +1,5 @@
 pub mod block_instancing;
+pub mod lights;
 
 use crate::{
     components::{

@@ -4,14 +4,14 @@ pub mod resources;
 pub mod systems;
 pub mod utils;
 
-use bevy::{diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin}, prelude::*};
+use bevy::{
+    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
+    prelude::*,
+};
 use plugins::{
     camera::CameraPlugin, chunks::ChunksPlugin, grid::GridPlugin, render::RenderPlugin,
-    testing::TestingPlugin,
+    simulation::SimulationPlugin, testing::TestingPlugin,
 };
-
-
-
 
 fn main() {
     let mut app = App::new();
@@ -24,6 +24,7 @@ fn main() {
         GridPlugin,
         CameraPlugin,
         RenderPlugin,
+        SimulationPlugin,
     ));
 
     app.run();

@@ -1,6 +1,4 @@
-use bevy::{
-    app::{Plugin, Startup},
-};
+use bevy::app::{Plugin, Startup};
 
 use crate::{
     resources::{
